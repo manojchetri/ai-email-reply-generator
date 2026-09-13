@@ -1,0 +1,334 @@
+{
+  "name": "AI Email Reply Generator",
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyX",
+              "value": 1,
+              "unit": "minutes"
+            }
+          ]
+        },
+        "filters": {
+          "q": "label:AI-REPLY",
+          "readStatus": "both"
+        }
+      },
+      "id": "bb37a082-694c-4aa8-9142-61deb83852ac",
+      "name": "Gmail Trigger (AI-REPLY)",
+      "type": "n8n-nodes-base.gmailTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        0,
+        112
+      ],
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "NeMw9VhKTybwb65o",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "messageId": "={{ $json.id }}",
+        "simple": false,
+        "options": {}
+      },
+      "id": "e3162dd2-8111-4c9f-8c3e-f2f6fe263351",
+      "name": "Get Email",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        224,
+        112
+      ],
+      "webhookId": "97f96f79-c722-4844-af49-f40a0a96c218",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "NeMw9VhKTybwb65o",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a1",
+              "name": "sender",
+              "type": "string",
+              "value": "={{ $json.from.value[0].address }}"
+            },
+            {
+              "id": "a2",
+              "name": "subject",
+              "type": "string",
+              "value": "={{ $json.subject }}"
+            },
+            {
+              "id": "a3",
+              "name": "email_body",
+              "type": "string",
+              "value": "={{ $json.text }}"
+            },
+            {
+              "id": "a4",
+              "name": "message_id",
+              "type": "string",
+              "value": "={{ $json.id }}"
+            },
+            {
+              "id": "a5",
+              "name": "thread_id",
+              "type": "string",
+              "value": "={{ $json.threadId }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "bc20cf97-675f-4dd8-b87d-53bdbdaa906e",
+      "name": "Prepare Email Data",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        448,
+        112
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Sender:\n{{ $json.sender }}\n\nSubject:\n{{ $json.subject }}\n\nEmail body:\n{{ $json.email_body }}",
+        "messages": {
+          "messageValues": [
+            {
+              "message": "You are an AI Email Reply Generator.\n\nYour job is to create a professional, natural, friendly and concise reply to an incoming business email.\n\nRules:\n1. Understand the sender's request before responding.\n2. Answer questions when the required information is available.\n3. Be professional, friendly and concise.\n4. Do not invent facts, prices, dates, policies or promises.\n5. If information is missing, politely ask for clarification.\n6. Never mention that you are an AI.\n7. Do not include a subject line.\n8. Do not say 'Here is the draft' or similar phrases.\n9. Maintain the context of the original conversation.\n10. Return only the email reply body.\n11. Do not send the email automatically.\n12. Do not invent information that is not present in the email or available context.\n13. Always end the reply with a sign-off followed by the name \"Manoj Chetri\". Never use a placeholder such as [Your Name]."
+            }
+          ]
+        },
+        "batching": {}
+      },
+      "id": "aa2df0db-3317-48e7-b644-0c84a38c5034",
+      "name": "AI Email Reply Generator",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        672,
+        112
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "8b45664f-f449-4618-8784-a7458f9d6872",
+      "name": "Google Gemini Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        752,
+        336
+      ],
+      "credentials": {
+        "googlePalmApi": {
+          "id": "VJRXIqJ03IITDgKF",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('Prepare Email Data').item.json.sender }}",
+        "subject": "=Re: {{ $('Prepare Email Data').item.json.subject }}",
+        "emailType": "text",
+        "message": "={{ $json.text }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "id": "e58b78bb-c829-4289-a2f7-b6be18556690",
+      "name": "Gmail Send Message",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1024,
+        112
+      ],
+      "webhookId": "725f54fd-020f-4af4-a99c-50f291db576d",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "NeMw9VhKTybwb65o",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "addLabels",
+        "messageId": "={{ $('Prepare Email Data').item.json.message_id }}",
+        "labelIds": [
+          "Label_5880732339803015495"
+        ]
+      },
+      "id": "480bfa4d-6da0-42df-8c40-2adcdc866ffc",
+      "name": "Add AI-PROCESSED Label",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1248,
+        112
+      ],
+      "webhookId": "69b94b69-4dab-49ac-b7ce-ce883b27bf0d",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "NeMw9VhKTybwb65o",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "removeLabels",
+        "messageId": "={{ $('Prepare Email Data').item.json.message_id }}",
+        "labelIds": [
+          "Label_2971643741611691330"
+        ]
+      },
+      "id": "793e72f6-85f6-4ada-bc26-44f057a683f6",
+      "name": "Remove AI-REPLY Label",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1472,
+        112
+      ],
+      "webhookId": "372ac608-3f89-4645-812a-4a4bd0509684",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "NeMw9VhKTybwb65o",
+          "name": "Gmail account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Gmail Trigger (AI-REPLY)": {
+      "main": [
+        [
+          {
+            "node": "Get Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Email": {
+      "main": [
+        [
+          {
+            "node": "Prepare Email Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Email Data": {
+      "main": [
+        [
+          {
+            "node": "AI Email Reply Generator",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Email Reply Generator": {
+      "main": [
+        [
+          {
+            "node": "Gmail Send Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Email Reply Generator",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gmail Send Message": {
+      "main": [
+        [
+          {
+            "node": "Add AI-PROCESSED Label",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Add AI-PROCESSED Label": {
+      "main": [
+        [
+          {
+            "node": "Remove AI-REPLY Label",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "errorWorkflow": "k6HY4Vv8K643aGA3"
+  },
+  "versionId": "1a65c3b4-6166-43e9-9b4a-1a4f9d01c987",
+  "meta": {
+    "instanceId": "3f3eaaccf9403e898e87ce0a6b29e8f9f4ffb1c4b62677515ea4e89ce4e7eb0f"
+  },
+  "nodeGroups": [
+    {
+      "id": "c3c44abb-8440-4d9e-9ea2-549331e76d9b",
+      "name": "Ingest",
+      "nodeIds": [
+        "e3162dd2-8111-4c9f-8c3e-f2f6fe263351",
+        "bc20cf97-675f-4dd8-b87d-53bdbdaa906e"
+      ],
+      "description": "Fetch the incoming AI-REPLY email and normalize its fields."
+    },
+    {
+      "id": "8c226f2e-09f1-45e9-8d0b-fac556063ded",
+      "name": "Send & Mark Processed",
+      "nodeIds": [
+        "e58b78bb-c829-4289-a2f7-b6be18556690",
+        "480bfa4d-6da0-42df-8c40-2adcdc866ffc",
+        "793e72f6-85f6-4ada-bc26-44f057a683f6"
+      ],
+      "description": "Send the AI reply to the original sender, then label the original message as processed."
+    }
+  ],
+  "id": "WJG8Am5g1YzLOYNB",
+  "tags": []
+}
